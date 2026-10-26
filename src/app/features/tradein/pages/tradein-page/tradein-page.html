@@ -1,0 +1,115 @@
+<main class="tradein">
+  <header><h1>Plan canje</h1><p>Cotizá tu equipo usado y consultá la vigencia de tu vale.</p></header>
+  @if (error()) { <app-error-alert [message]="error()" /> }
+  @if (message()) { <p role="status" class="notice">{{ message() }}</p> }
+  @if (busy()) { <app-loading-state /> }
+
+  @if (!isSupervisor) {
+    <section class="panel" aria-labelledby="quote-title">
+      <h2 id="quote-title">Cotización estimada</h2>
+      <form [formGroup]="quoteForm" (ngSubmit)="quote()">
+        <div class="fields">
+          <label>Marca <input formControlName="brand" required /></label>
+          <label>Modelo <input formControlName="model" required /></label>
+          <label>Memoria (GB) <input type="number" min="1" formControlName="memoryGb" required /></label>
+          <label>Batería medida (%) <input type="number" min="0" max="100" formControlName="batteryPercent" required /></label>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" formControlName="powersOn" /> Enciende</label>
+          <label><input type="checkbox" formControlName="screenIntact" /> Pantalla sin roturas</label>
+          <label><input type="checkbox" formControlName="accountUnlocked" /> Sin bloqueo de cuenta</label>
+          <label><input type="checkbox" formControlName="boxAndCharger" /> Incluye caja y cargador</label>
+        </div>
+        <button type="submit" [disabled]="busy()">Obtener cotización</button>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="voucher-title">
+      <h2 id="voucher-title">Consultar vale</h2>
+      <div class="actions"><label>Código del vale <input [formControl]="voucherCode" /></label><button type="button" (click)="loadVoucher()" [disabled]="busy()">Buscar vale</button></div>
+      @let voucherView = voucherState();
+      @switch (voucherView.status) {
+        @case ('loading') { <app-loading-state /> }
+        @case ('empty') { <p>Ingresá un código para consultar un vale o generá una cotización.</p> }
+        @case ('error') { <app-error-alert [message]="voucherView.message" /> }
+        @case ('ready') {
+          <div class="summary">
+            <p><strong>Código:</strong> {{ voucherView.data.code }} · <strong>Sucursal:</strong> {{ voucherView.data.branch }}</p>
+            <p><strong>Equipo declarado:</strong> {{ voucherView.data.declaredDevice.brand }} {{ voucherView.data.declaredDevice.model }} · {{ voucherView.data.declaredDevice.memoryGb }} GB</p>
+            <p><strong>Estado declarado:</strong> enciende: {{ voucherView.data.declaredChecklist.powersOn ? 'sí' : 'no' }}; pantalla sana: {{ voucherView.data.declaredChecklist.screenIntact ? 'sí' : 'no' }}; batería: {{ voucherView.data.declaredChecklist.batteryPercent }} %; sin bloqueo: {{ voucherView.data.declaredChecklist.accountUnlocked ? 'sí' : 'no' }}; caja y cargador: {{ voucherView.data.declaredChecklist.boxAndCharger ? 'sí' : 'no' }}.</p>
+            <p><strong>Emitido:</strong> {{ voucherView.data.issuedAt | date:'short' }} · <strong>Vence:</strong> {{ voucherView.data.expiresAt | date:'short' }}</p>
+            <p><strong>Estimado vigente:</strong> {{ voucherView.data.estimate | ars }}</p>
+            @if (!isAvailable(voucherView.data) && voucherView.data.status !== 'CONFIRMED') { <p role="status">El vale está vencido y no puede utilizarse.</p> }
+            @if (voucherView.data.status === 'CONFIRMED') { <p role="status">Valor final confirmado: {{ voucherView.data.finalValue | ars }} · IMEI {{ voucherView.data.confirmedImei }}</p> }
+            @for (difference of differences(voucherView.data); track difference) { <p class="difference">{{ difference }}</p> }
+          </div>
+          @if (isSeller && isAvailable(voucherView.data)) {
+            <form [formGroup]="verificationForm" (ngSubmit)="updateQuote()">
+              <h3>Estado observado en sucursal</h3>
+              <div class="fields">
+                <label>Marca <input formControlName="brand" required /></label>
+                <label>Modelo <input formControlName="model" required /></label>
+                <label>Memoria (GB) <input type="number" min="1" formControlName="memoryGb" required /></label>
+                <label>Batería medida (%) <input type="number" min="0" max="100" formControlName="batteryPercent" required /></label>
+              </div>
+              <div class="checks">
+                <label><input type="checkbox" formControlName="powersOn" /> Enciende</label>
+                <label><input type="checkbox" formControlName="screenIntact" /> Pantalla sin roturas</label>
+                <label><input type="checkbox" formControlName="accountUnlocked" /> Sin bloqueo de cuenta</label>
+                <label><input type="checkbox" formControlName="boxAndCharger" /> Incluye caja y cargador</label>
+              </div>
+              <button type="submit" [disabled]="busy()">Actualizar cotización</button>
+            </form>
+            <div class="validation" [formGroup]="saleForm">
+              <h3>Validación del valor final</h3>
+              <div class="fields">
+                <label>IMEI (15 dígitos) <input formControlName="imei" inputmode="numeric" maxlength="15" required /></label>
+                <label>Valor propuesto <input type="number" min="0.01" step="0.01" formControlName="proposedValue" required /></label>
+                <label>Motivo del ajuste <input formControlName="reason" /></label>
+              </div>
+              <p>Desvío respecto del estimado: {{ deviation() | number:'1.1-1' }} %</p>
+              @if (!savedVerification()) { <p>Guardá el estado observado antes de continuar.</p> }
+              @if (imeiVerified()) { <p role="status">Sin denuncia · verificado</p> }
+              <div class="actions">
+                <button type="button" (click)="verifyImei()" [disabled]="busy() || !savedVerification()">Verificar IMEI</button>
+                @if (absoluteDeviation() > 10) {
+                  <button type="button" (click)="requestApproval()" [disabled]="busy() || !imeiVerified() || !savedVerification()">Solicitar aprobación</button>
+                  <button type="button" (click)="checkApproval()" [disabled]="busy()">Consultar aprobación</button>
+                }
+                <button type="button" (click)="confirm()" [disabled]="!canConfirm()">Confirmar valor final</button>
+              </div>
+              @let sellerApproval = approvalState();
+              @if (sellerApproval.status === 'ready') {
+                <p role="status">Aprobación: {{ sellerApproval.data.status === 'PENDING' ? 'pendiente' : sellerApproval.data.status === 'APPROVED' ? 'aprobada' : 'rechazada' }}</p>
+              }
+            </div>
+          }
+        }
+      }
+    </section>
+  }
+
+  @if (isSupervisor) {
+    <section class="panel" aria-labelledby="approval-title">
+      <h2 id="approval-title">Solicitudes para supervisión</h2>
+      <div class="actions"><label>Código del vale <input [formControl]="approvalCode" /></label><button type="button" (click)="loadSupervisorApproval()" [disabled]="busy()">Buscar solicitud</button></div>
+      @let supervisorApproval = approvalState();
+      @switch (supervisorApproval.status) {
+        @case ('loading') { <app-loading-state /> }
+        @case ('empty') { <p>Buscá una solicitud por el código de su vale.</p> }
+        @case ('error') { <app-error-alert [message]="supervisorApproval.message" /> }
+        @case ('ready') {
+          <p><strong>Vale:</strong> {{ supervisorApproval.data.code }} · <strong>Sucursal:</strong> {{ supervisorApproval.data.branch }}</p>
+          <p><strong>Vendedor:</strong> {{ supervisorApproval.data.seller }} · <strong>IMEI:</strong> {{ supervisorApproval.data.imei }}</p>
+          <p><strong>Estimado:</strong> {{ supervisorApproval.data.estimate | ars }} · <strong>Propuesto:</strong> {{ supervisorApproval.data.proposed | ars }}</p>
+          <p><strong>Desvío:</strong> {{ supervisorApproval.data.deviationPercent | number:'1.1-1' }} % · <strong>Batería:</strong> {{ supervisorApproval.data.batteryPercent ?? 'Sin medición' }} %</p>
+          <p><strong>Motivo:</strong> {{ supervisorApproval.data.reason }}</p>
+          <p><strong>Estado:</strong> {{ supervisorApproval.data.status === 'PENDING' ? 'Pendiente' : supervisorApproval.data.status === 'APPROVED' ? 'Aprobada' : 'Rechazada' }}</p>
+          @if (supervisorApproval.data.status === 'PENDING') {
+            <div class="actions"><button type="button" (click)="resolve(true)" [disabled]="busy()">Aprobar</button><button type="button" (click)="resolve(false)" [disabled]="busy()">Rechazar</button></div>
+          }
+        }
+      }
+    </section>
+  }
+</main>

@@ -1,0 +1,25 @@
+:host { display: block; }
+.dashboard { max-width: 80rem; margin: 0 auto; padding: 1.5rem; color: var(--color-text, #202938); }
+header p, .scope { color: var(--color-muted, #576575); }
+.filters { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; padding: 1rem; background: var(--color-surface, #fff); border: 1px solid var(--color-border, #dce2e8); border-radius: .75rem; }
+.filters div { display: grid; gap: .35rem; min-width: 10rem; flex: 1; }
+label { font-weight: 600; }
+input, select, button { font: inherit; padding: .65rem; border: 1px solid var(--color-border, #b6c2ce); border-radius: .4rem; }
+button { cursor: pointer; background: var(--color-primary, #164c78); color: var(--color-on-primary, #fff); border-color: var(--color-primary, #164c78); }
+button:disabled { opacity: .55; cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--color-focus, #e99b35); outline-offset: 2px; }
+section { margin-top: 1.75rem; padding: 1.25rem; background: var(--color-surface, #fff); border: 1px solid var(--color-border, #dce2e8); border-radius: .75rem; }
+h2 { margin-top: 0; }
+.summary, .breakdowns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); gap: 1rem; }
+.summary article, .breakdowns > div { padding: 1rem; border: 1px solid var(--color-border, #dce2e8); border-radius: .5rem; }
+.summary h3 { font-size: 1rem; margin: 0 0 .5rem; }
+.summary strong { font-size: 1.4rem; }
+.breakdowns { margin-top: 1rem; }
+.breakdowns ul { list-style: none; margin: 0; padding: 0; }
+.breakdowns li { display: flex; justify-content: space-between; gap: 1rem; padding: .5rem 0; border-top: 1px solid var(--color-border, #dce2e8); }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th, td { padding: .75rem; border-bottom: 1px solid var(--color-border, #dce2e8); }
+th { white-space: nowrap; }
+.pagination { display: flex; align-items: center; justify-content: flex-end; gap: .75rem; margin-top: 1rem; }
+@media (max-width: 40rem) { .dashboard { padding: .75rem; } section { padding: .75rem; } .filters div { flex-basis: 100%; } .pagination { justify-content: space-between; } }

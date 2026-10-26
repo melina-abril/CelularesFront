@@ -1,0 +1,37 @@
+:root {
+  color-scheme: light;
+  --color-primary: #183153;
+  --color-on-primary: #ffffff;
+  --color-primary-soft: #e8f0f6;
+  --color-accent: #176c80;
+  --color-background: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-text: #203044;
+  --color-muted: #506078;
+  --color-border: #c9d3dc;
+  --color-danger: #a32727;
+  --color-success: #166544;
+  --color-warning: #855200;
+  --radius: .55rem;
+  --shadow: 0 2px 12px rgb(24 49 83 / 8%);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--color-background); color: var(--color-text); line-height: 1.5; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .6; }
+a { color: var(--color-accent); }
+:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; }
+h1, h2, h3 { line-height: 1.25; }
+img { max-width: 100%; height: auto; }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: .65rem; border-bottom: 1px solid var(--color-border); text-align: left; }
+.table-scroll { overflow-x: auto; }
+.card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.25rem; }
+.btn-primary { background: var(--color-primary); color: var(--color-on-primary); border: 1px solid var(--color-primary); border-radius: var(--radius); padding: .65rem 1rem; }
+.btn-secondary { background: var(--color-surface); color: var(--color-primary); border: 1px solid var(--color-border); border-radius: var(--radius); padding: .65rem 1rem; }
+.form-field { display: grid; gap: .35rem; margin-bottom: 1rem; }
+.form-field input, .form-field select, .form-field textarea { width: 100%; padding: .65rem; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); color: var(--color-text); }
+.muted { color: var(--color-muted); }
+@media (max-width: 700px) { .card { padding: 1rem; } }

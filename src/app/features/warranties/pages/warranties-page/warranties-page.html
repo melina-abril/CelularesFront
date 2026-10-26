@@ -1,0 +1,66 @@
+<main class="warranties-page">
+  <h1>Garantías y servicio técnico</h1>
+  <p>Buscá una venta para consultar la cobertura y registrar un reclamo.</p>
+
+  <section class="panel" aria-labelledby="search-heading">
+    <h2 id="search-heading">Buscar venta</h2>
+    <form [formGroup]="searchForm" (ngSubmit)="search()" class="form-row">
+      <div class="field">
+        <label for="search-by">Buscar por</label>
+        <select id="search-by" formControlName="searchBy">
+          <option value="imei">IMEI</option>
+          <option value="dni">DNI</option>
+          <option value="invoiceNumber">Número de factura</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="search-value">Dato de búsqueda</label>
+        <input id="search-value" formControlName="value" autocomplete="off" required placeholder="Ej.: 356789012345678" />
+      </div>
+      <button type="submit">Consultar cobertura</button>
+    </form>
+    <p class="hint">Para probar: IMEI 356789012345678, DNI 30123456 o factura B-0004-00001238.</p>
+  </section>
+
+  @let coverageState = coverage();
+  @switch (coverageState.status) {
+    @case ('loading') { <app-loading-state /> }
+    @case ('empty') { <p role="status">Todavía no se realizó una búsqueda.</p> }
+    @case ('error') { <app-error-alert [message]="coverageState.message" /> }
+    @case ('ready') {
+      <section class="panel" aria-labelledby="coverage-heading">
+        <h2 id="coverage-heading">Cobertura del equipo</h2>
+        <dl class="details">
+          <div><dt>Modelo</dt><dd>{{ coverageState.data.model }}</dd></div>
+          <div><dt>IMEI</dt><dd>{{ coverageState.data.imei }}</dd></div>
+          <div><dt>Estado del equipo</dt><dd>{{ coverageState.data.condition }}</dd></div>
+          <div><dt>Factura</dt><dd>{{ coverageState.data.invoiceNumber }}</dd></div>
+          <div><dt>Entrega</dt><dd>{{ coverageState.data.deliveredAt | date:'dd/MM/yyyy' }}</dd></div>
+          <div><dt>Vencimiento de garantía</dt><dd>{{ coverageState.data.expiresAt | date:'dd/MM/yyyy' }}</dd></div>
+          <div><dt>Cobertura</dt><dd>{{ coverageState.data.covered ? 'Vigente' : 'Vencida' }}</dd></div>
+        </dl>
+      </section>
+      @if (coverageState.data.covered) {
+        <section class="panel" aria-labelledby="claim-heading">
+          <h2 id="claim-heading">Registrar reclamo</h2>
+          <form [formGroup]="claimForm" (ngSubmit)="createClaim(coverageState.data)" class="claim-form">
+            <div class="field"><label for="fault">Falla informada</label><textarea id="fault" formControlName="reportedFault" rows="3" required></textarea></div>
+            <div class="field"><label for="photos">Referencias de fotos (separadas por coma)</label><input id="photos" formControlName="photos" placeholder="foto-frente.jpg, foto-dorso.jpg" /></div>
+            <div class="field"><label for="branch">Sucursal de recepción</label><input id="branch" formControlName="receivingBranch" required /></div>
+            <button type="submit">Crear reclamo</button>
+          </form>
+          @if (creation(); as creationState) {
+            @switch (creationState.status) {
+              @case ('loading') { <app-loading-state /> }
+              @case ('error') { <app-error-alert [message]="creationState.message" /> }
+              @case ('ready') { <p role="status">Reclamo creado: <a [routerLink]="['/warranties', creationState.data.id]">{{ creationState.data.id }} — ver seguimiento</a></p> }
+            }
+          }
+        </section>
+      } @else {
+        <p role="status">La garantía no está vigente. No se puede registrar un reclamo cubierto.</p>
+      }
+    }
+  }
+  <p><a routerLink="/catalogo">Volver al catálogo</a></p>
+</main>

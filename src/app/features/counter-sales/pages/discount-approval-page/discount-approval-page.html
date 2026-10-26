@@ -1,0 +1,15 @@
+<main><a routerLink="/counter-sales">Volver a venta en mostrador</a><h1>Aprobación de descuentos</h1>
+  <p>Ingresá el ID proporcionado por el vendedor. Aprobá únicamente solicitudes de tu sucursal.</p>
+  <form [formGroup]="form" (ngSubmit)="resolve(true)">
+    <label for="approval-id">ID de solicitud</label><input id="approval-id" formControlName="approvalId" required autocomplete="off">
+    <div class="actions"><button type="submit" [disabled]="result().status === 'loading'">Aprobar</button><button type="button" (click)="resolve(false)" [disabled]="result().status === 'loading'">Rechazar</button></div>
+  </form>
+  @if (result(); as approvalResult) {
+    @switch (approvalResult.status) {
+      @case ('loading') { <app-loading-state /> }
+      @case ('error') { <app-error-alert [message]="approvalResult.message" /> }
+      @case ('empty') { <p>No hay una solicitud seleccionada.</p> }
+      @case ('ready') { <p role="status">Solicitud {{ approvalResult.data.id }} · IMEI {{ approvalResult.data.imei }} · {{ approvalResult.data.percent }} % · {{ approvalResult.data.approved ? 'Aprobada' : 'Rechazada' }}.</p> }
+    }
+  }
+</main>

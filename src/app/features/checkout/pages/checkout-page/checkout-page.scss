@@ -1,0 +1,13 @@
+:host { display: block; }
+.checkout-page { max-width: 56rem; margin: 0 auto; padding: 1.5rem; }
+.steps { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; padding-left: 1.5rem; }
+section { margin-block: 1.5rem; padding: 1.5rem; border: 1px solid var(--color-border, #d6dbe1); border-radius: .75rem; background: var(--color-surface, #fff); }
+form { display: grid; gap: .8rem; }
+fieldset { border: 1px solid var(--color-border, #d6dbe1); border-radius: .5rem; }
+.check { display: block; margin: .6rem 0; }
+input:not([type='checkbox']), select { width: 100%; min-height: 2.75rem; padding: .55rem; border: 1px solid var(--color-border, #d6dbe1); border-radius: .4rem; background: var(--color-surface, #fff); color: inherit; }
+button { width: fit-content; min-height: 2.75rem; padding: .5rem 1rem; border: 0; border-radius: .4rem; background: var(--color-primary, #174a80); color: white; cursor: pointer; }
+button.secondary { background: var(--color-surface, #fff); color: var(--color-primary, #174a80); border: 1px solid currentColor; }
+button:disabled { opacity: .55; cursor: not-allowed; }
+.summary { font-weight: 600; }
+@media (max-width: 600px) { .checkout-page { padding: 1rem; } section { padding: 1rem; } button { width: 100%; } }

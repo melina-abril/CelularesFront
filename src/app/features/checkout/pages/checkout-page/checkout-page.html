@@ -1,0 +1,109 @@
+<main class="checkout-page">
+  <header><h1>Carrito y compra online</h1><p>Revisá tu equipo, elegí la entrega y confirmá tu pedido.</p></header>
+  <nav aria-label="Pasos de compra"><ol class="steps"><li>Carrito</li><li>Datos</li><li>Entrega</li><li>Pago</li><li>Confirmación</li></ol></nav>
+  @if (formError(); as message) { <app-error-alert [message]="message" /> }
+  @if (cartState(); as cartStateValue) {
+    @switch (cartStateValue.status) {
+      @case ('loading') { <app-loading-state /> }
+      @case ('empty') { <p>No hay equipos en el carrito. <a routerLink="/catalogo">Explorar el catálogo</a></p> }
+      @case ('error') { <app-error-alert [message]="cartStateValue.message" /><button type="button" (click)="loadCart()">Reintentar</button> }
+      @case ('ready') {
+        @if (step() === 'cart') {
+          <section aria-labelledby="cart-title"><h2 id="cart-title">Tu equipo</h2>
+            <p><strong>{{ cartStateValue.data.model }}</strong> · {{ cartStateValue.data.color }} · {{ cartStateValue.data.memory }}</p>
+            <p>Precio contado: {{ cartStateValue.data.cashPrice | ars }}</p>
+            <form [formGroup]="cartForm" (ngSubmit)="saveCart()">
+              <fieldset><legend>Accesorios sugeridos</legend>
+                @for (item of cartStateValue.data.suggestedAccessories; track item.id) {
+                  <label class="check"><input type="checkbox" [checked]="selectedAccessories().includes(item.id)" (change)="toggleAccessory(item.id, $any($event.target).checked)" /> {{ item.name }} · {{ item.price | ars }}</label>
+                }
+              </fieldset>
+              <label for="voucher">Código de vale de canje (opcional)</label><input id="voucher" formControlName="voucherCode" autocomplete="off" />
+              <p>Subtotal de productos: <strong>{{ cartStateValue.data.subtotal | ars }}</strong></p>
+              <p>El valor del canje se validará al confirmar el pedido.</p>
+              <button type="submit">Guardar carrito y continuar</button>
+            </form>
+          </section>
+        }
+        @if (step() === 'details' || step() === 'delivery' || step() === 'payment') {
+          <p class="summary">{{ cartStateValue.data.model }} · {{ cartStateValue.data.subtotal | ars }} antes de envío y canje</p>
+          <form [formGroup]="checkoutForm" (ngSubmit)="step() === 'details' ? continueToDelivery() : step() === 'delivery' ? reserve() : placeOrder()">
+            @if (step() === 'details') {
+              <section><h2>Datos personales y facturación</h2>
+                <label for="full-name">Nombre completo</label><input id="full-name" formControlName="fullName" autocomplete="name" required />
+                <label for="dni">DNI</label><input id="dni" formControlName="dni" inputmode="numeric" required />
+                <label for="email">Correo electrónico</label><input id="email" type="email" formControlName="email" autocomplete="email" required />
+                <label for="invoice-type">Tipo de factura</label><select id="invoice-type" formControlName="invoiceType"><option value="B">Factura B</option><option value="A">Factura A</option></select>
+                @if (checkoutForm.controls.invoiceType.value === 'A') { <label for="cuit">CUIT</label><input id="cuit" formControlName="cuit" inputmode="numeric" required /> }
+                <button type="submit">Continuar a entrega</button>
+              </section>
+            }
+            @if (step() === 'delivery') {
+              <section><h2>Entrega</h2>
+                <label for="delivery-method">Modalidad</label><select id="delivery-method" formControlName="deliveryMethod"><option value="RETIRO">Retiro en sucursal</option><option value="ENVIO">Envío a domicilio</option></select>
+                @if (checkoutForm.controls.deliveryMethod.value === 'ENVIO') {
+                  <label for="address">Dirección</label><input id="address" formControlName="address" autocomplete="street-address" />
+                  <label for="postal-code">Código postal</label><input id="postal-code" formControlName="postalCode" autocomplete="postal-code" />
+                  <button type="button" class="secondary" (click)="loadDelivery()">Consultar costo de envío</button>
+                }
+                @if (deliveryState(); as deliveryValue) {
+                  @switch (deliveryValue.status) {
+                    @case ('loading') { <app-loading-state /> }
+                    @case ('empty') { <p>No hay opciones de entrega disponibles.</p> }
+                    @case ('error') { <app-error-alert [message]="deliveryValue.message" /><button type="button" (click)="loadDelivery()">Reintentar</button> }
+                    @case ('ready') {
+                      <label for="branch">{{ checkoutForm.controls.deliveryMethod.value === 'ENVIO' ? 'Sucursal de origen' : 'Sucursal de retiro' }}</label>
+                      <select id="branch" formControlName="branch">
+                        @for (pickup of deliveryValue.data.pickupBranches; track pickup.branch) { <option [value]="pickup.branch">{{ pickup.name }}</option> }
+                      </select>
+                      @if (checkoutForm.controls.deliveryMethod.value === 'ENVIO') {
+                        <p>Costo de envío: {{ deliveryValue.data.shipping.cost | ars }}</p>
+                        @if (!deliveryValue.data.shipping.available) { <p role="status">Envío no disponible para este código postal.</p> }
+                      }
+                      <button type="submit">Reservar equipo y continuar al pago</button>
+                    }
+                  }
+                }
+                @if (reservationState(); as reserveValue) {
+                  @if (reserveValue.status === 'loading') { <app-loading-state /> }
+                  @if (reserveValue.status === 'error') { <app-error-alert [message]="reserveValue.message" /> }
+                }
+              </section>
+            }
+            @if (step() === 'payment') {
+              <section><h2>Pago y confirmación</h2>
+                @if (reservationState(); as reserveValue) {
+                  @if (reserveValue.status === 'ready') {
+                    <p role="timer">Reserva hasta {{ reserveValue.data.expiresAt | date:'short' }} · {{ secondsLeft() }} segundos restantes</p>
+                  }
+                }
+                <label for="payment-method">Medio de pago</label><select id="payment-method" formControlName="paymentMethod"><option value="TRANSFERENCIA">Transferencia</option><option value="TARJETA">Tarjeta</option></select>
+                @if (checkoutForm.controls.paymentMethod.value === 'TARJETA') {
+                  <label for="installments">Cantidad de cuotas</label><select id="installments" formControlName="installments"><option [ngValue]="1">1</option><option [ngValue]="3">3</option><option [ngValue]="6">6</option><option [ngValue]="9">9</option><option [ngValue]="12">12</option><option [ngValue]="18">18</option></select>
+                  <label for="payment-token">Token de la pasarela de pagos</label><input id="payment-token" formControlName="paymentToken" autocomplete="off" />
+                  <p>No ingreses número, vencimiento ni código de seguridad de tu tarjeta en esta página. Se requiere un token emitido por una pasarela externa.</p>
+                } @else { <p>Con transferencia, el pedido quedará pendiente de acreditación durante 48 horas.</p> }
+                <button type="submit" [disabled]="secondsLeft() === 0 || orderState().status === 'loading'">Confirmar pedido</button>
+                @if (orderState(); as orderValue) {
+                  @if (orderValue.status === 'loading') { <app-loading-state /> }
+                  @if (orderValue.status === 'error') { <app-error-alert [message]="orderValue.message" /> }
+                }
+              </section>
+            }
+          </form>
+        }
+        @if (step() === 'done') {
+          @if (orderState(); as orderValue) {
+            @if (orderValue.status === 'ready') {
+              <section role="status"><h2>Pedido confirmado</h2><p>Número: <strong>{{ orderValue.data.id }}</strong></p>
+                <p>Estado: {{ orderValue.data.status }} · Total: {{ orderValue.data.total | ars }}</p>
+                @if (orderValue.data.transferDeadline) { <p>Transferencia pendiente hasta {{ orderValue.data.transferDeadline | date:'short' }}.</p> }
+                <a routerLink="/catalogo">Volver al catálogo</a>
+              </section>
+            }
+          }
+        }
+      }
+    }
+  }
+</main>

@@ -1,0 +1,40 @@
+<section class="detail" aria-labelledby="detail-title">
+  <a routerLink="/orders">← Volver a pedidos</a>
+  @let detailState = state();
+  @switch (detailState.status) {
+    @case ('loading') { <app-loading-state /> }
+    @case ('empty') { <h1 id="detail-title">Pedido no encontrado</h1><p>No hay información para este número de pedido.</p> }
+    @case ('error') { <h1 id="detail-title">Detalle del pedido</h1><app-error-alert [message]="detailState.message" /><button type="button" (click)="load()">Reintentar</button> }
+    @case ('ready') {
+      <header><h1 id="detail-title">Pedido {{ detailState.data.id }}</h1><p>{{ statusLabel(detailState.data.status) }}</p></header>
+      <dl class="facts">
+        <div><dt>Equipo</dt><dd>{{ detailState.data.model }} · {{ detailState.data.variant }}</dd></div>
+        <div><dt>Total</dt><dd>{{ detailState.data.total | ars }}</dd></div>
+        <div><dt>Sucursal</dt><dd>{{ detailState.data.branch ?? 'Sin sucursal' }}</dd></div>
+        <div><dt>Entrega</dt><dd>{{ detailState.data.deliveryMethod === 'RETIRO' ? 'Retiro en sucursal' : 'Envío a domicilio' }}</dd></div>
+        <div><dt>Pago</dt><dd>{{ detailState.data.paymentMethod === 'TARJETA' ? 'Tarjeta' : 'Transferencia' }}</dd></div>
+        <div><dt>Creado</dt><dd>{{ detailState.data.createdAt | date:'dd/MM/yyyy HH:mm' }}</dd></div>
+        @if (detailState.data.imei) { <div><dt>IMEI</dt><dd>{{ detailState.data.imei }}</dd></div> }
+        @if (detailState.data.deliveredAt) { <div><dt>Entregado</dt><dd>{{ detailState.data.deliveredAt | date:'dd/MM/yyyy HH:mm' }}</dd></div> }
+      </dl>
+      @if (detailState.data.transferExpiresAt) { <p class="notice">Transferencia: vence el {{ detailState.data.transferExpiresAt | date:'dd/MM/yyyy HH:mm' }} · {{ remaining(detailState.data.transferExpiresAt) }}</p> }
+      @if (detailState.data.withinReturnPeriod && detailState.data.returnDeadline) { <p class="notice">Dentro del plazo de arrepentimiento hasta el {{ detailState.data.returnDeadline | date:'dd/MM/yyyy HH:mm' }} · {{ remaining(detailState.data.returnDeadline) }}</p> }
+      @if (canUpdate && detailState.data.nextStatuses.length) {
+        <form [formGroup]="form" (ngSubmit)="advance()">
+          <h2>Avanzar pedido</h2>
+          <label for="next-status">Próximo estado</label>
+          <select id="next-status" formControlName="status"><option value="">Seleccionar estado</option>@for (status of detailState.data.nextStatuses; track status) { <option [value]="status">{{ statusLabel(status) }}</option> }</select>
+          @if (form.controls.status.value === 'PREPARADO') {
+            <label for="order-imei">IMEI de la unidad (15 dígitos)</label><input id="order-imei" formControlName="imei" inputmode="numeric" maxlength="15" autocomplete="off" [attr.aria-invalid]="form.controls.imei.invalid">
+            @if (form.controls.imei.invalid) { <p role="alert">Ingresá un IMEI válido de 15 dígitos.</p> }
+          }
+          <button type="submit" [disabled]="!form.controls.status.value || updateState()?.status === 'loading'">Confirmar estado</button>
+        </form>
+      }
+      @let result = updateState();
+      @if (result?.status === 'loading') { <p role="status">Actualizando pedido…</p> }
+      @if (result?.status === 'error') { <app-error-alert [message]="result!.status === 'error' ? result!.message : ''" /> }
+      @if (result?.status === 'ready') { <p role="status">El pedido se actualizó correctamente.</p> }
+    }
+  }
+</section>

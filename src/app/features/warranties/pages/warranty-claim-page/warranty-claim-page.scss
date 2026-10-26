@@ -1,0 +1,10 @@
+.claim-page { max-width: 70rem; margin: 0 auto; padding: 1.5rem; display: grid; gap: 1rem; }
+.panel { padding: 1.25rem; border: 1px solid var(--color-border, #cbd5e1); border-radius: .75rem; background: var(--color-surface, #fff); }
+.details { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem; }
+.details div { overflow-wrap: anywhere; } dt { font-weight: 700; } dd { margin: .25rem 0 0; }
+form { display: grid; gap: 1rem; max-width: 40rem; }
+.field { display: grid; gap: .4rem; }
+select, textarea { padding: .65rem; border: 1px solid var(--color-border, #cbd5e1); border-radius: .4rem; font: inherit; }
+button { justify-self: start; padding: .7rem 1rem; border: 0; border-radius: .4rem; background: var(--color-primary, #174f80); color: var(--color-surface, #fff); font: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--color-primary, #174f80); outline-offset: 2px; }
+@media (max-width: 40rem) { .claim-page { padding: 1rem; } }
