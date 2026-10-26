@@ -1,0 +1,6 @@
+:host { display: block; min-height: 100vh; }
+.app-shell { display: grid; grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr); max-width: 1440px; margin: 0 auto; }
+.app-content { min-width: 0; padding: 2rem; }
+.skip-link { position: absolute; transform: translateY(-200%); background: var(--color-surface); z-index: 20; padding: .75rem; }
+.skip-link:focus { transform: translateY(0); }
+@media (max-width: 700px) { .app-shell { display: block; } .app-content { padding: 1rem; } }

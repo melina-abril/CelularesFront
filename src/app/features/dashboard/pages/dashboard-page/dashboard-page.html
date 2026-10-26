@@ -1,0 +1,82 @@
+<main class="dashboard">
+  <header><h1>Tablero comercial</h1><p>Ventas, modelos destacados, stock crítico y transferencias en tránsito.</p></header>
+  @if (authorized()) {
+    <form [formGroup]="filters" (ngSubmit)="applyFilters()" class="filters">
+      <div><label for="dashboard-from">Desde</label><input id="dashboard-from" type="date" formControlName="from"></div>
+      <div><label for="dashboard-to">Hasta</label><input id="dashboard-to" type="date" formControlName="to"></div>
+      @if (!isSupervisor()) {
+        <div><label for="dashboard-branch">Sucursal</label><select id="dashboard-branch" formControlName="branch"><option value="">Todas las sucursales</option>@for (branch of branches; track branch) { <option [value]="branch">{{ branch }}</option> }</select></div>
+      } @else {
+        <p class="scope">Solo se muestran datos de tu sucursal: {{ currentUser.user().branch }}.</p>
+      }
+      <button type="submit">Aplicar filtros</button>
+    </form>
+
+    <section aria-labelledby="sales-title">
+      <h2 id="sales-title">Ventas del período</h2>
+      @let salesState = sales();
+      @switch (salesState.status) {
+        @case ('loading') { <app-loading-state /> }
+        @case ('empty') { <p role="status">No hay ventas para el período y la sucursal seleccionados.</p> }
+        @case ('error') { <app-error-alert [message]="salesState.message" /><button type="button" (click)="loadSales()">Reintentar</button> }
+        @case ('ready') {
+          <div class="summary" aria-label="Indicadores de ventas">
+            <article><h3>Ventas</h3><strong>{{ salesState.data.saleCount }}</strong></article>
+            <article><h3>Facturación</h3><strong>{{ salesState.data.totalSales | ars }}</strong></article>
+            <article><h3>Ticket promedio</h3><strong>{{ salesState.data.averageTicket | ars }}</strong></article>
+            <article><h3>Ventas con canje</h3><strong>{{ salesState.data.tradeInPercentage | number:'1.0-1' }} %</strong></article>
+          </div>
+          <div class="breakdowns">
+            <div><h3>Por sucursal</h3><ul>@for (item of salesState.data.byBranch; track item.name) { <li><span>{{ item.name }} ({{ item.saleCount }})</span><strong>{{ item.totalSales | ars }}</strong></li> }</ul></div>
+            <div><h3>Por canal</h3><ul>@for (item of salesState.data.byChannel; track item.name) { <li><span>{{ item.name }} ({{ item.saleCount }})</span><strong>{{ item.totalSales | ars }}</strong></li> }</ul></div>
+            <div><h3>Por medio de pago</h3><ul>@for (item of salesState.data.byPaymentMethod; track item.name) { <li><span>{{ item.name }} ({{ item.saleCount }})</span><strong>{{ item.totalSales | ars }}</strong></li> }</ul></div>
+          </div>
+        }
+      }
+    </section>
+
+    <section aria-labelledby="models-title">
+      <h2 id="models-title">Modelos más vendidos</h2>
+      @let modelState = models();
+      @switch (modelState.status) {
+        @case ('loading') { <app-loading-state /> }
+        @case ('empty') { <p role="status">No hay modelos vendidos para estos filtros.</p> }
+        @case ('error') { <app-error-alert [message]="modelState.message" /><button type="button" (click)="loadModels()">Reintentar</button> }
+        @case ('ready') {
+          <div class="table-scroll"><table><thead><tr><th scope="col">Puesto</th><th scope="col">Modelo</th><th scope="col">Unidades</th><th scope="col">Total vendido</th></tr></thead><tbody>@for (item of modelState.data.content; track item.rank) { <tr><td>{{ item.rank }}</td><td>{{ item.model }}</td><td>{{ item.unitsSold }}</td><td>{{ item.totalSales | ars }}</td></tr> }</tbody></table></div>
+          <nav class="pagination" aria-label="Páginas de modelos"><button type="button" [disabled]="modelState.data.page === 0" (click)="changePage('models', modelState.data.page - 1)">Anterior</button><span>Página {{ modelState.data.page + 1 }} de {{ modelState.data.totalPages }}</span><button type="button" [disabled]="modelState.data.page + 1 >= modelState.data.totalPages" (click)="changePage('models', modelState.data.page + 1)">Siguiente</button></nav>
+        }
+      }
+    </section>
+
+    <section aria-labelledby="stock-title">
+      <h2 id="stock-title">Stock crítico</h2>
+      @let stockState = stock();
+      @switch (stockState.status) {
+        @case ('loading') { <app-loading-state /> }
+        @case ('empty') { <p role="status">No hay equipos con stock crítico en esta sucursal.</p> }
+        @case ('error') { <app-error-alert [message]="stockState.message" /><button type="button" (click)="loadStock()">Reintentar</button> }
+        @case ('ready') {
+          <div class="table-scroll"><table><thead><tr><th scope="col">Sucursal</th><th scope="col">Modelo</th><th scope="col">Unidades disponibles</th><th scope="col">Última venta</th></tr></thead><tbody>@for (item of stockState.data.content; track item.branch + item.model) { <tr><td>{{ item.branch }}</td><td>{{ item.model }}</td><td>{{ item.availableUnits }}</td><td>{{ item.lastSaleDate | date:'dd/MM/yyyy' }}</td></tr> }</tbody></table></div>
+          <nav class="pagination" aria-label="Páginas de stock crítico"><button type="button" [disabled]="stockState.data.page === 0" (click)="changePage('stock', stockState.data.page - 1)">Anterior</button><span>Página {{ stockState.data.page + 1 }} de {{ stockState.data.totalPages }}</span><button type="button" [disabled]="stockState.data.page + 1 >= stockState.data.totalPages" (click)="changePage('stock', stockState.data.page + 1)">Siguiente</button></nav>
+        }
+      }
+    </section>
+
+    <section aria-labelledby="transfers-title">
+      <h2 id="transfers-title">Transferencias en tránsito</h2>
+      @let transferState = transfers();
+      @switch (transferState.status) {
+        @case ('loading') { <app-loading-state /> }
+        @case ('empty') { <p role="status">No hay transferencias en tránsito para esta sucursal.</p> }
+        @case ('error') { <app-error-alert [message]="transferState.message" /><button type="button" (click)="loadTransfers()">Reintentar</button> }
+        @case ('ready') {
+          <div class="table-scroll"><table><thead><tr><th scope="col">Transferencia</th><th scope="col">Modelo e IMEI</th><th scope="col">Origen</th><th scope="col">Destino</th><th scope="col">Despacho</th><th scope="col">Estado</th></tr></thead><tbody>@for (item of transferState.data.content; track item.id) { <tr><td>{{ item.id }}</td><td>{{ item.model }}<br><small>IMEI: {{ item.imei }}</small></td><td>{{ item.origin }}</td><td>{{ item.destination }}</td><td>{{ item.dispatchedAt | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ item.status }}</td></tr> }</tbody></table></div>
+          <nav class="pagination" aria-label="Páginas de transferencias"><button type="button" [disabled]="transferState.data.page === 0" (click)="changePage('transfers', transferState.data.page - 1)">Anterior</button><span>Página {{ transferState.data.page + 1 }} de {{ transferState.data.totalPages }}</span><button type="button" [disabled]="transferState.data.page + 1 >= transferState.data.totalPages" (click)="changePage('transfers', transferState.data.page + 1)">Siguiente</button></nav>
+        }
+      }
+    </section>
+  } @else {
+    <p role="alert">Tu rol no tiene acceso al tablero comercial.</p>
+  }
+</main>

@@ -1,0 +1,85 @@
+<main class="counter-sale">
+  <header><h1>Venta en mostrador</h1><p>Sucursal: {{ session.user().branch ?? 'Sin sucursal asignada' }}</p>
+    @if (session.user().role === UserRole.SUPERVISOR) { <a routerLink="approvals">Resolver aprobaciones</a> }
+  </header>
+
+  <section aria-labelledby="customer-heading"><h2 id="customer-heading">1. Cliente</h2>
+    <form [formGroup]="lookupForm" (ngSubmit)="findCustomer()" class="row">
+      <div><label for="lookup-dni">Buscar por DNI</label><input id="lookup-dni" formControlName="dni" inputmode="numeric" autocomplete="off"></div>
+      <button type="submit">Buscar cliente</button>
+    </form>
+    @if (customerState(); as customerResult) {
+      @switch (customerResult.status) {
+        @case ('loading') { <app-loading-state /> }
+        @case ('error') { <app-error-alert [message]="customerResult.message" /> }
+        @case ('ready') { <p role="status">Cliente: <strong>{{ customerResult.data.name }}</strong> · DNI {{ customerResult.data.dni }} · Factura {{ customerResult.data.registeredTaxpayer ? 'A' : 'B' }}</p> }
+        @case ('empty') { <p>Buscá un cliente o registrá uno nuevo.</p> }
+      }
+    }
+    <details><summary>Registrar cliente nuevo</summary>
+      <form [formGroup]="customerForm" (ngSubmit)="createCustomer()" class="grid">
+        <div><label for="new-dni">DNI</label><input id="new-dni" formControlName="dni" inputmode="numeric" required></div>
+        <div><label for="new-name">Nombre y apellido</label><input id="new-name" formControlName="name" required></div>
+        <div><label for="new-phone">Teléfono</label><input id="new-phone" formControlName="phone" type="tel" required></div>
+        <div><label for="new-taxpayer">Condición fiscal</label><select id="new-taxpayer" formControlName="registeredTaxpayer"><option [ngValue]="false">Consumidor final</option><option [ngValue]="true">Responsable inscripto</option></select></div>
+        @if (customerForm.controls.registeredTaxpayer.value) { <div><label for="new-cuit">CUIT para factura A</label><input id="new-cuit" formControlName="cuit" inputmode="numeric" required></div> }
+        <button type="submit">Registrar cliente</button>
+      </form>
+    </details>
+  </section>
+
+  <section aria-labelledby="imei-heading"><h2 id="imei-heading">2. Escanear equipo</h2>
+    <form [formGroup]="imeiForm" (ngSubmit)="verifyImei()" class="row">
+      <div><label for="sale-imei">IMEI de la caja</label><input id="sale-imei" formControlName="imei" inputmode="numeric" required autocomplete="off"></div>
+      <button type="submit">Verificar IMEI</button>
+    </form>
+    @if (imeiState(); as imeiResult) {
+      @switch (imeiResult.status) {
+        @case ('loading') { <app-loading-state /> }
+        @case ('error') { <app-error-alert [message]="imeiResult.message" /> }
+        @case ('ready') { <p role="status"><strong>{{ imeiResult.data.model }}</strong> · {{ imeiResult.data.branch }} · Precio contado {{ imeiResult.data.cashPrice | ars }}</p> }
+        @case ('empty') { <p>Escaneá el IMEI para consultar disponibilidad.</p> }
+      }
+    }
+  </section>
+
+  <section aria-labelledby="sale-heading"><h2 id="sale-heading">3. Pago y facturación</h2>
+    <p>Consultá las opciones vigentes en el <a routerLink="/payments">simulador de cuotas</a> antes de ingresar el total.</p>
+    <form [formGroup]="saleForm" (ngSubmit)="createSale()" class="grid">
+      <div><label for="accessories">SKU de accesorios (separados por coma)</label><input id="accessories" formControlName="accessorySkus"></div>
+      <div><label for="voucher">Código de vale de canje (opcional)</label><input id="voucher" formControlName="voucherCode"></div>
+      <div><label for="discount">Descuento (%)</label><input id="discount" formControlName="discountPercent" type="number" min="0" max="100" step="0.01"></div>
+      @if (saleForm.controls.discountPercent.value > 5) {
+        <div><label for="approval-id">ID de aprobación del supervisor</label><input id="approval-id" formControlName="approvalId"></div>
+        @if (session.user().role === UserRole.VENDEDOR) { <button type="button" (click)="requestApproval()" [disabled]="!unit()">Solicitar aprobación</button> }
+      }
+      <div><label for="payment-method">Medio de pago</label><select id="payment-method" formControlName="paymentMethod"><option value="CASH">Contado</option><option value="TRANSFER">Transferencia</option><option value="DEBIT">Débito</option><option value="CREDIT">Crédito</option></select></div>
+      @if (saleForm.controls.paymentMethod.value === 'CREDIT') {
+        <div><label for="installments">Cantidad de cuotas</label><input id="installments" formControlName="installments" type="number" min="1" required></div>
+        <div><label for="bank">Banco</label><input id="bank" formControlName="bank" required></div>
+      }
+      <div><label for="payment-total">Total a cobrar ($)</label><input id="payment-total" formControlName="paymentTotal" type="number" min="0.01" step="0.01" required></div>
+      <button type="submit" [disabled]="!customer() || !unit() || saleState().status === 'loading'">Emitir venta y factura</button>
+    </form>
+    @if (approvalState(); as approvalResult) {
+      @switch (approvalResult.status) {
+        @case ('loading') { <app-loading-state /> }
+        @case ('error') { <app-error-alert [message]="approvalResult.message" /> }
+        @case ('ready') { <p role="status">Solicitud {{ approvalResult.data.id }} enviada. Esperá la aprobación del supervisor antes de emitir la venta.</p> }
+      }
+    }
+    @if (saleState(); as saleResult) {
+      @switch (saleResult.status) {
+        @case ('loading') { <app-loading-state /> }
+        @case ('error') { <app-error-alert [message]="saleResult.message" /> }
+        @case ('ready') {
+          <div class="receipt" role="status"><h3>Venta registrada</h3><p>Factura {{ saleResult.data.invoiceType }} {{ saleResult.data.invoiceNumber }}</p>
+            <p>IMEI: {{ saleResult.data.imei }} · DNI: {{ saleResult.data.dni }}</p>
+            <p>Total: {{ saleResult.data.total | ars }} · Comisión estimada: {{ saleResult.data.commission | ars }}</p>
+            <p>Fecha: {{ saleResult.data.createdAt | date:'short' }}</p></div>
+        }
+        @case ('empty') { <p>La factura aparecerá aquí al confirmar la venta.</p> }
+      }
+    }
+  </section>
+</main>

@@ -1,9 +1,3 @@
 node_modules/
 dist/
-out-tsc/
-.angular/
-.idea/
-.vscode/*
-!.vscode/extensions.json
-*.log
-.DS_Store
+.angular/cache/

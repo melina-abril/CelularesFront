@@ -1,0 +1,13 @@
+.warranties-page { max-width: 70rem; margin: 0 auto; padding: 1.5rem; display: grid; gap: 1rem; }
+.panel { padding: 1.25rem; border: 1px solid var(--color-border, #cbd5e1); border-radius: .75rem; background: var(--color-surface, #fff); }
+.form-row { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; }
+.claim-form { display: grid; gap: 1rem; max-width: 40rem; }
+.field { display: grid; gap: .4rem; flex: 1 1 12rem; }
+input, select, textarea { padding: .65rem; border: 1px solid var(--color-border, #cbd5e1); border-radius: .4rem; font: inherit; min-width: 0; }
+button { padding: .7rem 1rem; border: 0; border-radius: .4rem; background: var(--color-primary, #174f80); color: var(--color-surface, #fff); font: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--color-primary, #174f80); outline-offset: 2px; }
+.details { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem; }
+.details div { min-width: 0; overflow-wrap: anywhere; }
+dt { font-weight: 700; } dd { margin: .25rem 0 0; }
+.hint { font-size: .9rem; }
+@media (max-width: 40rem) { .warranties-page { padding: 1rem; } .form-row { display: grid; } }

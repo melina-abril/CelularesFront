@@ -1,0 +1,31 @@
+<section class="orders-page" aria-labelledby="orders-title">
+  <header><h1 id="orders-title">Gestión de pedidos</h1><p>Consultá los pedidos online, sus plazos y el estado de preparación.</p></header>
+  <form class="filters" [formGroup]="filters" (ngSubmit)="applyFilters()">
+    <div><label for="order-status">Estado</label><select id="order-status" formControlName="status"><option value="">Todos</option>@for (status of statuses; track status) { <option [value]="status">{{ statusLabel(status) }}</option> }</select></div>
+    <div><label for="order-branch">Sucursal</label><select id="order-branch" formControlName="branch" [attr.aria-disabled]="fixedBranch"><option value="">Todas</option>@for (branch of branchOptions; track branch) { <option [value]="branch">{{ branch }}</option> }</select></div>
+    <div><label for="order-payment">Medio de pago</label><select id="order-payment" formControlName="paymentMethod"><option value="">Todos</option>@for (payment of paymentOptions; track payment) { <option [value]="payment">{{ payment === 'TARJETA' ? 'Tarjeta' : 'Transferencia' }}</option> }</select></div>
+    <div><label for="order-from">Desde</label><input id="order-from" type="date" formControlName="from"></div>
+    <div><label for="order-to">Hasta</label><input id="order-to" type="date" formControlName="to"></div>
+    <button type="submit">Buscar pedidos</button>
+  </form>
+  @let orderState = state();
+  @switch (orderState.status) {
+    @case ('loading') { <app-loading-state /> }
+    @case ('error') { <app-error-alert [message]="orderState.message" /><button type="button" (click)="load()">Reintentar</button> }
+    @case ('empty') { <p role="status">No se encontraron pedidos con estos filtros.</p> }
+    @case ('ready') {
+      <p role="status">{{ orderState.data.total }} pedidos encontrados</p>
+      <div class="orders-list">
+        @for (order of orderState.data.items; track order.id) {
+          <article class="order-card">
+            <div><h2><a [routerLink]="[order.id]">Pedido {{ order.id }}</a></h2><p>{{ order.model }} · {{ order.variant }}</p><p>{{ order.createdAt | date:'dd/MM/yyyy HH:mm' }} · {{ order.branch ?? 'Sin sucursal' }}</p></div>
+            <div><strong>{{ order.total | ars }}</strong><p>{{ statusLabel(order.status) }}</p><p>{{ order.paymentMethod === 'TARJETA' ? 'Tarjeta' : 'Transferencia' }}</p></div>
+            @if (order.transferExpiringSoon && order.transferExpiresAt) { <p class="notice">Transferencia por vencer: {{ remaining(order.transferExpiresAt) }}</p> }
+            @if (order.withinReturnPeriod && order.returnDeadline) { <p class="notice">Dentro del plazo de arrepentimiento · {{ remaining(order.returnDeadline) }}</p> }
+          </article>
+        }
+      </div>
+      <nav class="pagination" aria-label="Páginas de pedidos"><button type="button" [disabled]="page() === 0" (click)="changePage(page() - 1)">Anterior</button><span>Página {{ page() + 1 }}</span><button type="button" [disabled]="(page() + 1) * orderState.data.size >= orderState.data.total" (click)="changePage(page() + 1)">Siguiente</button></nav>
+    }
+  }
+</section>

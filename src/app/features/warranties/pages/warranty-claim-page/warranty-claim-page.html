@@ -1,0 +1,52 @@
+<main class="claim-page">
+  <p><a routerLink="/warranties">← Volver a garantías</a></p>
+  <h1>Seguimiento de reclamo</h1>
+  @let claimState = claim();
+  @switch (claimState.status) {
+    @case ('loading') { <app-loading-state /> }
+    @case ('empty') { <p role="status">No hay un reclamo para mostrar.</p> }
+    @case ('error') { <app-error-alert [message]="claimState.message" /> }
+    @case ('ready') {
+      <section class="panel" aria-labelledby="detail-heading">
+        <h2 id="detail-heading">Reclamo {{ claimState.data.id }}</h2>
+        <dl class="details">
+          <div><dt>IMEI</dt><dd>{{ claimState.data.imei }}</dd></div>
+          <div><dt>Estado</dt><dd>{{ claimState.data.status.replaceAll('_', ' ') }}</dd></div>
+          <div><dt>Falla informada</dt><dd>{{ claimState.data.reportedFault }}</dd></div>
+          <div><dt>Sucursal de recepción</dt><dd>{{ claimState.data.receivingBranch }}</dd></div>
+          <div><dt>Creado</dt><dd>{{ claimState.data.createdAt | date:'dd/MM/yyyy HH:mm' }}</dd></div>
+          <div><dt>Última actualización</dt><dd>{{ claimState.data.updatedAt | date:'dd/MM/yyyy HH:mm' }}</dd></div>
+          <div><dt>Diagnóstico</dt><dd>{{ claimState.data.diagnosis || 'Pendiente' }}</dd></div>
+          @if (claimState.data.rejectionReason) { <div><dt>Motivo de rechazo</dt><dd>{{ claimState.data.rejectionReason }}</dd></div> }
+        </dl>
+        <h3>Fotos registradas</h3>
+        @if (claimState.data.photos.length) {
+          <ul>@for (photo of claimState.data.photos; track $index) { <li>{{ photo }}</li> }</ul>
+        } @else { <p>No hay fotos registradas.</p> }
+      </section>
+      @if (claimState.data.status !== 'ENTREGADO' && claimState.data.status !== 'RECHAZADO') {
+        <section class="panel" aria-labelledby="update-heading">
+          <h2 id="update-heading">Actualizar seguimiento</h2>
+          <form [formGroup]="statusForm" (ngSubmit)="save(claimState.data.id)">
+            <div class="field">
+              <label for="claim-status">Nuevo estado</label>
+              <select id="claim-status" formControlName="status">
+                @for (option of statusOptions; track option) { <option [value]="option">{{ option.replaceAll('_', ' ') }}</option> }
+              </select>
+            </div>
+            <div class="field"><label for="diagnosis">Diagnóstico</label><textarea id="diagnosis" formControlName="diagnosis" rows="3"></textarea></div>
+            <div class="field"><label for="rejection-reason">Motivo de rechazo (obligatorio si se rechaza)</label><textarea id="rejection-reason" formControlName="rejectionReason" rows="2"></textarea></div>
+            <button type="submit">Guardar estado</button>
+          </form>
+          @if (update(); as updateResult) {
+            @switch (updateResult.status) {
+              @case ('loading') { <app-loading-state /> }
+              @case ('error') { <app-error-alert [message]="updateResult.message" /> }
+              @case ('ready') { <p role="status">Estado actualizado correctamente.</p> }
+            }
+          }
+        </section>
+      }
+    }
+  }
+</main>

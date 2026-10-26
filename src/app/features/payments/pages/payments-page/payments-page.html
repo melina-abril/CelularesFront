@@ -1,0 +1,85 @@
+<main class="payments-page">
+  <header>
+    <h1>Simulador de cuotas y medios de pago</h1>
+    <p>Compará las condiciones de pago de la variante elegida antes de comprar.</p>
+  </header>
+
+  <form [formGroup]="form" (ngSubmit)="consult()" class="search-form">
+    <div>
+      <label for="variant-id">Identificación de la variante</label>
+      <input id="variant-id" type="text" formControlName="variantId" autocomplete="off" placeholder="Ej.: variant-iphone-15-128-black" />
+    </div>
+    <div>
+      <label for="query-date">Fecha de consulta</label>
+      <input id="query-date" type="date" formControlName="date" required />
+    </div>
+    <button type="submit">Consultar opciones</button>
+  </form>
+  <p><a routerLink="/catalogo">Volver al catálogo</a></p>
+
+  @let paymentState = state();
+  @switch (paymentState.status) {
+    @case ('loading') {
+      <app-loading-state />
+    }
+    @case ('empty') {
+      <p role="status">No hay opciones de pago para esta variante</p>
+    }
+    @case ('error') {
+      <app-error-alert [message]="paymentState.message" />
+    }
+    @case ('ready') {
+      <section aria-labelledby="variant-heading">
+        <h2 id="variant-heading">{{ paymentState.data.model }}</h2>
+        <p>{{ paymentState.data.memoryGb }} GB · {{ paymentState.data.color }} · {{ paymentState.data.condition }}</p>
+        <p>Precio de lista: <strong>{{ paymentState.data.listPrice | ars }}</strong></p>
+        <p>Fecha de consulta: {{ paymentState.data.queryDate | date:'dd/MM/yyyy' }}</p>
+        <p>Promociones sin interés vigentes: <strong>{{ paymentState.data.interestFreePromotions }}</strong></p>
+      </section>
+
+      <section aria-labelledby="options-heading">
+        <h2 id="options-heading">Opciones de pago</h2>
+        <div class="table-scroll">
+          <table>
+            <caption>Importes y condiciones para la variante seleccionada</caption>
+            <thead>
+              <tr>
+                <th scope="col">Medio de pago</th>
+                <th scope="col">Banco</th>
+                <th scope="col">Cuotas</th>
+                <th scope="col">Importe por cuota</th>
+                <th scope="col">Total</th>
+                <th scope="col">Recargo o descuento</th>
+                <th scope="col">CFT anual</th>
+                <th scope="col">Estado y promoción</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (option of paymentState.data.options; track $index) {
+                <tr [class.unavailable]="option.status === 'UNAVAILABLE_TODAY'">
+                  <th scope="row">{{ methodLabel(option.method) }}</th>
+                  <td>{{ option.bank ?? '—' }}</td>
+                  <td>{{ option.installments }}</td>
+                  <td>{{ option.installmentAmount | ars }}</td>
+                  <td>{{ option.total | ars }}</td>
+                  <td>{{ option.adjustmentPercent }} %</td>
+                  <td>{{ option.cftAnnualPercent }} %</td>
+                  <td>
+                    <strong>{{ option.statusLabel }}</strong>
+                    @if (option.promotionDays.length) {
+                      <span class="detail">Banco {{ option.bank }}: {{ promotionLabel(option.promotionDays) }}</span>
+                    }
+                    @if (option.unavailableReason) {
+                      <span class="detail">{{ option.unavailableReason }}</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="disclaimer">CFT significa costo financiero total anual. Los importes están sujetos a las condiciones de cada banco. Las opciones no disponibles hoy se muestran solo como referencia.</p>
+      </section>
+    }
+  }
+</main>
